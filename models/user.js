@@ -9,15 +9,19 @@ const userSchema=new mongoose.Schema({
         type:String,
         required:true
     },
-    workEmail:{
+    email:{
         type:String,
         required:true,
         unique:true
     },
     password: {
-        type: String,
+        type: String, 
         required: true
       },
+      pin:{
+        type: Number,
+        required:true
+      }
 },{
     timestamps:true
 });
