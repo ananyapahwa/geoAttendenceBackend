@@ -93,6 +93,7 @@ const authController = {
 
       console.log('PIN verified, clearing PIN...');
       user.pin = null; // Clear PIN after successful verification
+      user.emailVerified = true;
       await user.save();
 
       console.log('PIN verification successful');

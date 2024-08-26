@@ -20,7 +20,12 @@ const userSchema=new mongoose.Schema({
       },
       pin:{
         type: Number,
-        required:true
+        required:false
+      },
+      emailVerified:{
+        type:Boolean,
+        required:false,
+        default:false
       }
 },{
     timestamps:true
