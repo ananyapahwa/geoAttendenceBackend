@@ -1,25 +1,13 @@
 const mongoose = require('mongoose');
 
-const locationSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
+const LocationSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
   coordinates: {
-    type: {
-      type: String,
-      enum: ['Point'],
-      required: true
-    },
-    coordinates: {
-      type: [Number],
-      required: true
-    }
-  }
-}, {
-  timestamps: true
+    type: { type: String, default: 'Point' },
+    coordinates: [Number],
+  },
 });
 
-locationSchema.index({ coordinates: '2dsphere' });
+LocationSchema.index({ coordinates: '2dsphere' });
 
-module.exports = mongoose.model('Location', locationSchema);
+module.exports = mongoose.model('Location', LocationSchema);
