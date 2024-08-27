@@ -6,6 +6,7 @@ const connectDB=require('./config/db');
 const authRoutes = require('./routes/auth');
 const attendanceRoutes = require('./routes/attendance');
 const userRoutes = require('./routes/user');
+require('./schedulers/attendanceScheduler');
 
 const app=express();
 connectDB();

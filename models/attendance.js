@@ -12,40 +12,45 @@ const attendanceSchema = new mongoose.Schema({
     required: true
   },
   date: {
-    type: String,
+    type: Date, // Changed to Date for better time handling
     required: true
   },
   checkInTime: {
     type: Date,
-    required: true
+    required: false
   },
   checkOutTime: {
-    type: Date
+    type: Date,
+    required: false
   },
   status: {
     type: String,
     enum: ['Present', 'Absent', 'Late'],
-    default: 'Present'
+    default: 'Absent'
   },
   location: {
     type: {
-      type: String, 
+      type: String,
       enum: ['Point'],
       required: true
     },
     coordinates: {
-      type: [Number], 
+      type: [Number],
       required: true
     }
   },
   isInsideHQ: {
     type: Boolean,
-    required: true
+    default: false
   }
 }, {
   timestamps: true
 });
 
+// Ensure 2dsphere index for geospatial queries
 attendanceSchema.index({ location: '2dsphere' });
+
+// Add index for `date` to optimize queries by date
+attendanceSchema.index({ date: 1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
