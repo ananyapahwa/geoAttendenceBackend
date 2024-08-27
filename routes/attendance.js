@@ -2,16 +2,16 @@ const express = require('express');
 const attendanceController = require('../controllers/attendanceController');
 const router = express.Router();
 
-// Location update
+// Route to update user location
 router.post('/update-location', attendanceController.updateLocation);
 
-// Check-in
+// Route for user check-in
 router.post('/check-in', attendanceController.checkIn);
 
-// Check-out
+// Route for user check-out
 router.post('/check-out', attendanceController.checkOut);
 
-// Manual check-in
+// Route for manual check-in with location verification
 router.post('/manual-check-in', attendanceController.manualCheckIn);
 
-module.exports = router;
+module.exports = router; 

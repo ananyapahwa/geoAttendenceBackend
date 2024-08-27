@@ -11,6 +11,10 @@ const attendanceSchema = new mongoose.Schema({
     ref: 'Company',
     required: true
   },
+  date: {
+    type: String,
+    required: true
+  },
   checkInTime: {
     type: Date,
     required: true
@@ -21,7 +25,7 @@ const attendanceSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Present', 'Absent', 'Late'],
-    default: 'Present' 
+    default: 'Present'
   },
   location: {
     type: {

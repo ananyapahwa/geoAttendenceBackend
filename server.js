@@ -5,6 +5,7 @@ require('dotenv').config();
 const connectDB=require('./config/db');
 const authRoutes = require('./routes/auth');
 const attendanceRoutes = require('./routes/attendance');
+const userRoutes = require('./routes/user');
 
 const app=express();
 connectDB();
@@ -14,6 +15,7 @@ app.use(bodyParser.json())
 
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/user', userRoutes);
 
 app.get('/',(req,res)=>{
     res.send("Welcome to geolocation attendance app!")
