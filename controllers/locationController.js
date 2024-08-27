@@ -2,19 +2,20 @@ const Location = require('../models/location');
 const mongoose = require('mongoose');
 
 const locationController = {
-  // Create or update office location
+  // Create or update location
   upsertLocation: async (req, res) => {
-    const { userId, name, address, latitude, longitude } = req.body;
-
-    if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
+    const { name, latitude, longitude } = req.body;
 
     try {
-      // Upsert the location based on userId
+      // Upsert the location based on name
       const location = await Location.findOneAndUpdate(
-        { userId },
-        { name, address, coordinates: [longitude, latitude] },
+        { name },
+        {
+          coordinates: {
+            type: 'Point',
+            coordinates: [longitude, latitude]
+          }
+        },
         { new: true, upsert: true }
       );
 
@@ -25,16 +26,12 @@ const locationController = {
     }
   },
 
-  // Retrieve office location
+  // Retrieve location by name
   getLocation: async (req, res) => {
-    const { userId } = req.params;
-
-    if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({ message: 'Invalid user ID' });
-    }
+    const { name } = req.params;
 
     try {
-      const location = await Location.findOne({ userId });
+      const location = await Location.findOne({ name });
       if (!location) {
         return res.status(404).json({ message: 'Location not found' });
       }

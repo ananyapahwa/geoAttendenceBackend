@@ -1,11 +1,12 @@
 const express = require('express');
-const locationController = require('../controllers/locationController');
+const { upsertLocation, getLocation } = require('../controllers/locationController'); // Adjust path as needed
+
 const router = express.Router();
 
-// Route to create or update office location
-router.post('/upsert', locationController.upsertLocation);
+// Route to upsert location
+router.post('/upsert-location', upsertLocation);
 
-// Route to retrieve office location
-router.get('/:userId', locationController.getLocation);
+// Route to get location by userId
+router.get('/location/:userId', getLocation);
 
 module.exports = router;

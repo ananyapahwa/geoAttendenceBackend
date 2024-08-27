@@ -1,25 +1,27 @@
 const mongoose = require('mongoose');
 const Attendance = require('../models/attendance');
-const { getDistance } = require('geolib'); // Import getDistance from geolib
+const Location = require('../models/location');
+const { getDistance } = require('geolib');
 
-// Update location and handle check-ins/check-outs
 const updateLocation = async (req, res) => {
-  const { userId, latitude, longitude, hqLatitude, hqLongitude } = req.body;
+  const { userId, latitude, longitude } = req.body;
   const date = new Date().toDateString();
 
   if (!mongoose.isValidObjectId(userId)) {
-    return res.status(400).json({ message: 'Invalid userId' });
-  }
-
-  if (!hqLatitude || !hqLongitude) {
-    return res.status(400).json({ message: 'HQ coordinates are required' });
+    return res.status(400).json({ message: 'Invalid User ID' });
   }
 
   try {
-    // Save or update the user's location
+    const location = await Location.findOne({ name: 'HQ' });
+    if (!location || !location.coordinates || !location.coordinates.coordinates) {
+      return res.status(404).json({ message: 'HQ location not found' });
+    }
+
+    const [hqlongitude, hqlatitude] = location.coordinates.coordinates;
+
     await Attendance.updateOne(
       { userId, date },
-      { 
+      {
         $set: {
           location: { type: 'Point', coordinates: [longitude, latitude] }
         }
@@ -27,10 +29,7 @@ const updateLocation = async (req, res) => {
       { upsert: true }
     );
 
-    // Check if the user is inside the geofence
-    const isInsideHQ = checkIfInsideGeofence(latitude, longitude, hqLatitude, hqLongitude);
-
-    // Update attendance based on geofence status
+    const isInsideHQ = checkIfInsideGeofence(latitude, longitude, hqlatitude, hqlongitude);
     const attendanceRecord = await Attendance.findOne({ userId, date });
 
     if (isInsideHQ) {
@@ -43,31 +42,38 @@ const updateLocation = async (req, res) => {
       }
     }
 
-    res.status(200).json({ message: 'Location updated successfully' });
+    // Calculate working hours if check-out time is available
+    if (attendanceRecord.checkInTime && attendanceRecord.checkOutTime) {
+      const workingHours = (attendanceRecord.checkOutTime - attendanceRecord.checkInTime) / (1000 * 60 * 60); // in hours
+      await Attendance.updateOne(
+        { userId, date },
+        { $set: { workingHours } }
+      );
+    }
+
+    res.status(200).json({ message: 'Location Updated Successfully' });
   } catch (error) {
     console.error('Error updating location:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 
-// Helper function to determine if the location is inside the geofence
-const checkIfInsideGeofence = (latitude, longitude, hqLatitude, hqLongitude) => {
-  const distanceThreshold = 200.0; // Geofence radius in meters
+const checkIfInsideGeofence = (latitude, longitude, hqlatitude, hqlongitude) => {
+  const distanceThreshold = 200.0; // meters
 
   const distance = getDistance(
     { latitude, longitude },
-    { latitude: hqLatitude, longitude: hqLongitude }
+    { latitude: hqlatitude, longitude: hqlongitude }
   );
 
   return distance <= distanceThreshold;
 };
 
-// Check-in the user
 const checkIn = async (userId, date) => {
   await Attendance.updateOne(
     { userId, date },
-    { 
-      $set: { 
+    {
+      $set: {
         checkInTime: new Date(),
         isInsideHQ: true
       },
@@ -79,12 +85,11 @@ const checkIn = async (userId, date) => {
   );
 };
 
-// Check-out the user
 const checkOut = async (userId, date) => {
   await Attendance.updateOne(
     { userId, date },
-    { 
-      $set: { 
+    {
+      $set: {
         checkOutTime: new Date(),
         isInsideHQ: false
       }

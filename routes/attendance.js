@@ -1,8 +1,9 @@
 const express = require('express');
-const router = express.Router();
-const { updateLocation } = require('../controllers/attendanceController'); // Import your controller
+const { updateLocation } = require('../controllers/attendanceController'); // Adjust path as needed
 
-// Route to update location
-router.post('/update-location', updateLocation); // Ensure updateLocation is imported and defined
+const router = express.Router();
+
+// Route for updating location
+router.post('/update-location', updateLocation);
 
 module.exports = router;
