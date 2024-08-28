@@ -28,7 +28,7 @@ const attendanceSchema = new mongoose.Schema({
     enum: ['Present', 'Absent', 'Late'],
     default: 'Absent'
   },
-  workingHours: Number  ,
+  workingHours: String  ,
   location: {
     type: {
       type: String,

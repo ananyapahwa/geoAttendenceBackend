@@ -1,9 +1,12 @@
 const express = require('express');
-const { updateLocation } = require('../controllers/attendanceController'); // Adjust path as needed
+const { updateLocation, getAttendanceDetails } = require('../controllers/attendanceController');
 
 const router = express.Router();
 
-// Route for updating location
-router.post('/update-location', updateLocation);
+// Route for updating user location
+router.post('/updateLocation', updateLocation);
+
+// Route for getting attendance details
+router.get('/getAttendanceDetails', getAttendanceDetails);
 
 module.exports = router;
