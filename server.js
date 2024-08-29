@@ -6,7 +6,8 @@ const connectDB=require('./config/db');
 const authRoutes = require('./routes/auth');
 const attendanceRoutes = require('./routes/attendance');
 const userRoutes = require('./routes/user');
-const locationRoutes = require('./routes/location');
+const locationRoutes = require('./routes/location')
+const manualAttendanceRoutes = require('./routes/manualAttendanceRoutes');
 require('./schedulers/attendanceScheduler');
 
 const app=express();
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/manual-attendance', manualAttendanceRoutes);
 
 app.get('/',(req,res)=>{
     res.send("Welcome to geolocation attendance app!")
