@@ -5,7 +5,7 @@ const { getDistance } = require('geolib');
 
 // Function to update user location
 const updateLocation = async (req, res) => {
-  const { userId, latitude, longitude } = req.body;
+  const { userId, latitude, longitude,name } = req.body;
   const date = new Date().toDateString();
 
   if (!mongoose.isValidObjectId(userId)) {
@@ -13,9 +13,9 @@ const updateLocation = async (req, res) => {
   }
 
   try {
-    const location = await Location.findOne({ name: 'HQ' });
+    const location = await Location.findOne({ name });
     if (!location || !location.coordinates || !location.coordinates.coordinates) {
-      return res.status(404).json({ message: 'HQ location not found' });
+      return res.status(404).json({ message: 'Company location not found' });
     }
 
     const [hqlongitude, hqlatitude] = location.coordinates.coordinates;
