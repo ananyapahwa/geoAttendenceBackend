@@ -5,8 +5,8 @@ const { getDistance } = require('geolib');
 
 // Function to update user location
 const updateLocation = async (req, res) => {
-  const { userId, latitude, longitude,name } = req.body;
-  const date = new Date().toDateString();
+  const { userId, latitude, longitude, name } = req.body;
+  const date = new Date();
 
   if (!mongoose.isValidObjectId(userId)) {
     return res.status(400).json({ message: 'Invalid User ID' });
@@ -15,66 +15,66 @@ const updateLocation = async (req, res) => {
   try {
     const location = await Location.findOne({ name });
     if (!location || !location.coordinates || !location.coordinates.coordinates) {
-      return res.status(404).json({ message: 'Company location not found' });
+      return res.status(404).json({ message: 'HQ location not found' });
     }
 
     const [hqlongitude, hqlatitude] = location.coordinates.coordinates;
-
-    await Attendance.updateOne(
-      { userId, date },
-      {
-        $set: {
-          location: { type: 'Point', coordinates: [longitude, latitude] }
-        }
-      },
-      { upsert: true }
-    );
-
     const isInsideHQ = checkIfInsideGeofence(latitude, longitude, hqlatitude, hqlongitude);
+
+    console.log('User Location:', latitude, longitude);
+    console.log('HQ Location:', hqlatitude, hqlongitude);
     console.log('Is Inside HQ:', isInsideHQ);
 
-    // First fetch the record to check the current state
-    let attendanceRecord = await Attendance.findOne({ userId, date });
+    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
 
-    let message = 'Location Updated Successfully';
-    let workingHours = null;
-    let checkStatus = 'Not Checked In/Out';
+    let attendanceRecord = await Attendance.findOne({
+      userId,
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (!attendanceRecord) {
+      attendanceRecord = new Attendance({
+        userId,
+        date: startOfDay,
+        records: []
+      });
+    }
+
+    const todayRecords = attendanceRecord.records || [];
+    const lastRecord = todayRecords[todayRecords.length - 1] || {};
+
+    console.log('Last Record:', lastRecord);
 
     if (isInsideHQ) {
-      if (!attendanceRecord.checkInTime) {
-        await checkIn(userId, date);
-        // Fetch the record again to ensure we get the updated data
-        attendanceRecord = await Attendance.findOne({ userId, date });
-        message = 'Checked In';
-        checkStatus = 'Checked In';
+      if (!lastRecord.checkInTime || (lastRecord.checkOutTime && lastRecord.checkInTime)) {
+        todayRecords.push({
+          checkInTime: new Date(),
+          location: { type: 'Point', coordinates: [longitude, latitude] },
+          isInsideHQ: true,
+          status: 'Checked In'
+        });
+        console.log('Checked In:', todayRecords[todayRecords.length - 1]);
       }
     } else {
-      if (attendanceRecord.checkInTime && !attendanceRecord.checkOutTime) {
-        await checkOut(userId, date);
-        // Fetch the record again to ensure we get the updated data
-        attendanceRecord = await Attendance.findOne({ userId, date });
-
-        message = 'Checked Out';
-        checkStatus = 'Checked Out';
-
-        // Calculate working hours in hours and minutes
-        const totalMinutes = Math.round((attendanceRecord.checkOutTime - attendanceRecord.checkInTime) / (1000 * 60));
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        workingHours = `${hours} hours and ${minutes} minutes`;
-
-        await Attendance.updateOne(
-          { userId, date },
-          { $set: { workingHours } }
-        );
+      if (lastRecord.checkInTime && !lastRecord.checkOutTime) {
+        lastRecord.checkOutTime = new Date();
+        lastRecord.isInsideHQ = false;
+        lastRecord.status = 'Checked Out';
+        lastRecord.workingHours = calculateWorkingHours(lastRecord.checkInTime, lastRecord.checkOutTime);
+        todayRecords[todayRecords.length - 1] = lastRecord;
+        console.log('Checked Out:', lastRecord);
       }
     }
 
+    attendanceRecord.records = todayRecords;
+    await attendanceRecord.save();
+
     res.status(200).json({
-      message,
-      status: attendanceRecord.status,
-      workingHours,
-      checkStatus
+      message: lastRecord.status || 'Location Updated Successfully',
+      checkInTime: lastRecord.checkInTime || null,
+      checkOutTime: lastRecord.checkOutTime || null,
+      workingHours: lastRecord.workingHours || null
     });
   } catch (error) {
     console.error('Error updating location:', error);
@@ -84,51 +84,40 @@ const updateLocation = async (req, res) => {
 
 // Function to get attendance details for a specific date
 const getAttendanceDetails = async (req, res) => {
-  const { userId, date } = req.query; // Using query parameters
+  const { userId, date } = req.query;
 
   if (!mongoose.isValidObjectId(userId)) {
     return res.status(400).json({ message: 'Invalid User ID' });
   }
 
   try {
-    // Parse the input date and create the start and end of the day
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Query for attendance records within the date range
     const attendanceRecord = await Attendance.findOne({
       userId,
-      date: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      }
+      date: { $gte: startOfDay, $lte: endOfDay }
     });
 
     if (!attendanceRecord) {
       return res.status(404).json({ message: 'No attendance record found for this date' });
     }
 
-    // Calculate working hours if not already calculated
-    let workingHours = attendanceRecord.workingHours;
-    if (attendanceRecord.checkInTime && attendanceRecord.checkOutTime && !workingHours) {
-      const totalMinutes = Math.round((attendanceRecord.checkOutTime - attendanceRecord.checkInTime) / (1000 * 60));
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      workingHours = `${hours} hours and ${minutes} minutes`;
-
-      await Attendance.updateOne(
-        { userId, date: { $gte: startOfDay, $lte: endOfDay } },
-        { $set: { workingHours } }
-      );
-    }
+    // Process records to calculate working hours
+    const processedRecords = attendanceRecord.records.map(record => {
+      if (record.checkInTime && record.checkOutTime) {
+        record.workingHours = calculateWorkingHours(record.checkInTime, record.checkOutTime);
+      } else {
+        record.workingHours = null;
+      }
+      return record;
+    });
 
     res.status(200).json({
-      checkInTime: attendanceRecord.checkInTime,
-      checkOutTime: attendanceRecord.checkOutTime,
-      workingHours: workingHours || 'Not Calculated'
+      records: processedRecords
     });
   } catch (error) {
     console.error('Error fetching attendance details:', error);
@@ -148,33 +137,12 @@ const checkIfInsideGeofence = (latitude, longitude, hqlatitude, hqlongitude) => 
   return distance <= distanceThreshold;
 };
 
-// Function to handle user check-in
-const checkIn = async (userId, date) => {
-  await Attendance.updateOne(
-    { userId, date },
-    {
-      $set: {
-        checkInTime: new Date(),
-        isInsideHQ: true,
-        status: 'Present'
-      }
-    },
-    { upsert: true }
-  );
-};
-
-// Function to handle user check-out
-const checkOut = async (userId, date) => {
-  await Attendance.updateOne(
-    { userId, date },
-    {
-      $set: {
-        checkOutTime: new Date(),
-        isInsideHQ: false
-      }
-    }
-  );
+// Function to calculate working hours between check-in and check-out times
+const calculateWorkingHours = (checkInTime, checkOutTime) => {
+  const millisecondsInAnHour = 3600000;
+  const duration = checkOutTime - checkInTime;
+  return (duration / millisecondsInAnHour).toFixed(2); // Return hours with 2 decimal places
 };
 
 // Export the functions
-module.exports = { updateLocation , getAttendanceDetails};
+module.exports = { updateLocation, getAttendanceDetails };
