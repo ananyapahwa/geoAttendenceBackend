@@ -35,7 +35,6 @@ const manualCheckIn = async (req, res) => {
 };
 
 // Function to handle manual check-out
-// Function to handle manual check-out
 const manualCheckOut = async (req, res) => {
     const { userId, date, coordinates } = req.body;
   

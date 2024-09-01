@@ -1,12 +1,11 @@
 const express = require('express');
-const { updateLocation, getAttendanceDetails } = require('../controllers/attendanceController');
-
 const router = express.Router();
+const attendanceController = require('../controllers/attendanceController');
 
-// Route for updating user location
-router.post('/updateLocation', updateLocation);
+// Route to update user location (handles both check-in and check-out based on location)
+router.post('/update-location', attendanceController.updateLocation);
 
-// Route for getting attendance details
-router.get('/getAttendanceDetails', getAttendanceDetails);
+// Route to get attendance details for a specific date
+router.get('/attendance-details', attendanceController.getAttendanceDetails);
 
 module.exports = router;
