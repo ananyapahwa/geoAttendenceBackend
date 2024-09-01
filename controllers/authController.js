@@ -7,7 +7,7 @@ const sendEmail = require('../utils/helpers').sendEmail;
 
 const authController = {
   registerUser: async (req, res) => {
-    const { name, companyName, email, password, confirmPassword } = req.body;
+    const { name, companyName, contactNumber, email, password, confirmPassword } = req.body;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
@@ -24,6 +24,7 @@ const authController = {
       const newUser = new User({
         name,
         companyName,
+        contactNumber,
         email,
         password: hashedPassword,
         pin,

@@ -84,7 +84,7 @@ const updateLocation = async (req, res) => {
       const lastCheckOutTimeIST = convertToIST(lastRecord.checkOutTime);
 
       res.status(200).json({
-          message: lastRecord.status || 'Location Updated Successfully',
+          message: lastRecord.status || 'Checked Out',
           checkInTime: lastCheckInTimeIST,
           checkOutTime: lastRecord.checkOutTime ? lastCheckOutTimeIST : null,
           workingHours: lastRecord.workingHours || null

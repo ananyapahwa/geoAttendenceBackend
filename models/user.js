@@ -26,6 +26,11 @@ const userSchema=new mongoose.Schema({
         type:Boolean,
         required:false,
         default:false
+      },
+      contactNumber:{
+        type: Number,
+        required:true,
+        unique:true
       }
 },{
     timestamps:true
