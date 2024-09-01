@@ -3,6 +3,8 @@ const Attendance = require('../models/attendance');
 const Location = require('../models/location');
 const { getDistance } = require('geolib');
 const { addMinutes } = require('date-fns');
+const { startOfDay, endOfDay, parseISO } = require('date-fns');
+
 
 const convertToIST = (utcDate) => {
   return addMinutes(new Date(utcDate), 330); // Add 330 minutes (5 hours 30 minutes)
@@ -94,35 +96,53 @@ const updateLocation = async (req, res) => {
 };
 // Function to get attendance details for a specific date
 const getAttendanceDetails = async (req, res) => {
-    const { userId, date } = req.query;
+  const { userId, date } = req.query;
 
-    if (!mongoose.isValidObjectId(userId)) {
-        return res.status(400).json({ message: 'Invalid User ID' });
-    }
+  // Validate userId
+  if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ message: 'Invalid User ID' });
+  }
 
-    try {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
+  // Validate date
+  if (!date || isNaN(Date.parse(date))) {
+      return res.status(400).json({ message: 'Invalid Date' });
+  }
 
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+  try {
+      // Parse and set the date range using date-fns
+      const parsedDate = parseISO(date);
+      const startOfDayDate = startOfDay(parsedDate);
+      const endOfDayDate = endOfDay(parsedDate);
 
-        const attendanceRecord = await Attendance.findOne({
-            userId,
-            date: { $gte: startOfDay, $lte: endOfDay }
-        });
+      console.log('Fetching records for user:', userId);
+      console.log('Date Range:', startOfDayDate, 'to', endOfDayDate);
 
-        if (!attendanceRecord) {
-            return res.status(404).json({ message: 'No attendance record found for this date' });
-        }
+      // Query for attendance records
+      const attendanceRecord = await Attendance.findOne({
+          userId,
+          date: { $gte: startOfDayDate, $lte: endOfDayDate }
+      });
 
-        res.status(200).json({
-            records: attendanceRecord.records
-        });
-    } catch (error) {
-        console.error('Error fetching attendance details:', error);
-        res.status(500).json({ message: 'Server Error' });
-    }
+      if (!attendanceRecord) {
+          return res.status(404).json({ message: 'No attendance record found for this date' });
+      }
+
+      const transformedRecords = attendanceRecord.records.map(record => ({
+        checkInTime: record.checkInTime ? convertToIST(record.checkInTime).toISOString() : null,
+        checkOutTime: record.checkOutTime ? convertToIST(record.checkOutTime).toISOString() : null,
+        workingHours: record.workingHours || 0,
+        status: record.status,
+        location: record.location,
+      }));
+  
+      // Send response
+      res.status(200).json({
+        records: transformedRecords
+      });
+  } catch (error) {
+      console.error('Error fetching attendance details:', error);
+      res.status(500).json({ message: 'Server Error' });
+  }
 };
 
 // Function to check if the user is inside the HQ geofence
