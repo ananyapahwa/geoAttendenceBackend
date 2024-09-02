@@ -100,50 +100,48 @@ const getAttendanceDetails = async (req, res) => {
 
   // Validate userId
   if (!mongoose.isValidObjectId(userId)) {
-      return res.status(400).json({ message: 'Invalid User ID' });
+    return res.status(400).json({ message: 'Invalid User ID' });
   }
 
   // Validate date
   if (!date || isNaN(Date.parse(date))) {
-      return res.status(400).json({ message: 'Invalid Date' });
+    return res.status(400).json({ message: 'Invalid Date' });
   }
 
   try {
-      // Parse and set the date range using date-fns
-      const parsedDate = parseISO(date);
-      const startOfDayDate = startOfDay(parsedDate);
-      const endOfDayDate = endOfDay(parsedDate);
+    // Parse and set the date range using date-fns
+    const parsedDate = parseISO(date);
+    const startOfDayDate = startOfDay(parsedDate);
+    const endOfDayDate = endOfDay(parsedDate);
 
-      console.log('Fetching records for user:', userId);
-      console.log('Date Range:', startOfDayDate, 'to', endOfDayDate);
+    console.log('Fetching records for user:', userId);
+    console.log('Date Range:', startOfDayDate, 'to', endOfDayDate);
 
-      // Query for attendance records
-      const attendanceRecord = await Attendance.findOne({
-          userId,
-          date: { $gte: startOfDayDate, $lte: endOfDayDate }
-      });
+    // Query for attendance records
+    const attendanceRecord = await Attendance.findOne({
+      userId,
+      date: { $gte: startOfDayDate, $lte: endOfDayDate }
+    });
 
-      if (!attendanceRecord) {
-          return res.status(404).json({ message: 'No attendance record found for this date' });
-      }
+    // If no records are found, return an empty array
+    const transformedRecords = attendanceRecord ? attendanceRecord.records.map(record => ({
+      checkInTime: record.checkInTime ? convertToIST(record.checkInTime).toISOString() : null,
+      checkOutTime: record.checkOutTime ? convertToIST(record.checkOutTime).toISOString() : null,
+      workingHours: record.workingHours || 0,
+      status: record.status,
+      location: record.location,
+    })) : [];
 
-      const transformedRecords = attendanceRecord.records.map(record => ({
-        checkInTime: record.checkInTime ? convertToIST(record.checkInTime).toISOString() : null,
-        checkOutTime: record.checkOutTime ? convertToIST(record.checkOutTime).toISOString() : null,
-        workingHours: record.workingHours || 0,
-        status: record.status,
-        location: record.location,
-      }));
-  
-      // Send response
-      res.status(200).json({
-        records: transformedRecords
-      });
+    // Send response
+    res.status(200).json({
+      records: transformedRecords
+    });
   } catch (error) {
-      console.error('Error fetching attendance details:', error);
-      res.status(500).json({ message: 'Server Error' });
+    console.error('Error fetching attendance details:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 };
+
 
 // Function to check if the user is inside the HQ geofence
 const checkIfInsideGeofence = (latitude, longitude, hqlatitude, hqlongitude) => {

@@ -7,11 +7,15 @@ const sendEmail = require('../utils/helpers').sendEmail;
 
 const authController = {
   registerUser: async (req, res) => {
-    const { name, companyName, contactNumber, email, password, confirmPassword } = req.body;
+    const { name, companyID, contactNumber, email, password, confirmPassword } = req.body;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
+
+    if (!mongoose.isValidObjectId(companyID)) {
+      return res.status(400).json({ message: 'Invalid Company ID' });
+  }
 
     try {
       console.log('Hashing password...');
@@ -23,7 +27,7 @@ const authController = {
 
       const newUser = new User({
         name,
-        companyName,
+        companyID,
         contactNumber,
         email,
         password: hashedPassword,
