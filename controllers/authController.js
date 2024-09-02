@@ -4,6 +4,7 @@ const nodemailer = require('nodemailer');
 const User = require('../models/user');
 const Company = require('../models/company');
 const sendEmail = require('../utils/helpers').sendEmail;
+const mongoose = require('mongoose');
 
 const authController = {
   registerUser: async (req, res) => {
