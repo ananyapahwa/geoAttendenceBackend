@@ -5,10 +5,11 @@ const userSchema=new mongoose.Schema({
         type:String,
         required:true
     },
-    companyID:{
-        type:String,
-        required:true
-    },
+    companyID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company', 
+      required: true
+  },
     email:{
         type:String,
         required:true,

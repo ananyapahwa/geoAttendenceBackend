@@ -6,4 +6,6 @@ const companyController = require('../controllers/companyController');
 // Route to get company profile
 router.get('/profile', authCompanyMiddleware, companyController.getCompanyProfile);
 
+router.get('/companyinfo/:companyID', companyController.getCompanyInfoById );
+
 module.exports = router;
