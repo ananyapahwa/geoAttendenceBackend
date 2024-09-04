@@ -15,7 +15,7 @@ const toUTC = (date) => {
 // Handle manual check-in
 const manualCheckIn = async (req, res) => {
   try {
-    const { userId, companyID, location } = req.body;
+    const { userId, companyID, latitude, longitude } = req.body;
 
     const date = req.body.date ? new Date(req.body.date) : new Date();
     const manualCheckInTime = req.body.manualCheckInTime ? new Date(req.body.manualCheckInTime) : new Date();
@@ -44,7 +44,10 @@ const manualCheckIn = async (req, res) => {
       companyID,
       date: dateUTC,
       manualCheckInTime: manualCheckInTimeUTC,
-      location,
+      location: {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+      },
       status: 'Present', // Set status to 'Present' on check-in
     });
 
@@ -64,7 +67,7 @@ const manualCheckIn = async (req, res) => {
 // Handle manual check-out
 const manualCheckOut = async (req, res) => {
   try {
-    const { userId, companyID } = req.body;
+    const { userId, companyID, latitude, longitude } = req.body;
 
     const date = req.body.date ? new Date(req.body.date) : new Date();
     const manualCheckOutTime = req.body.manualCheckOutTime ? new Date(req.body.manualCheckOutTime) : new Date();
@@ -99,6 +102,12 @@ const manualCheckOut = async (req, res) => {
     attendance.manualCheckOutTime = manualCheckOutTimeUTC;
     attendance.workingHours = `${workingHours} hours`;
 
+    // Update location at check-out
+    attendance.location = {
+      type: 'Point',
+      coordinates: [longitude, latitude],
+    };
+
     await attendance.save();
 
     // Convert the dates to IST for the response
@@ -122,25 +131,35 @@ const getManualAttendanceDetails = async (req, res) => {
     const queryDate = date ? new Date(date) : new Date();
     const queryDateIST = toIST(queryDate).setUTCHours(0, 0, 0, 0);
 
-    // Fetch attendance records for the user
-    const attendanceRecords = await ManualAttendance.find({
+    // Fetch the attendance record for the user on the specified date
+    let attendanceRecord = await ManualAttendance.findOne({
       userId,
       companyID,
       date: toUTC(new Date(queryDateIST)),
     });
 
-    if (!attendanceRecords || attendanceRecords.length === 0) {
-      return res.status(404).json({ message: 'No attendance records found' });
+    if (!attendanceRecord) {
+      // No check-in record found, mark the user as "Absent"
+      return res.status(200).json({
+        attendanceRecord: {
+          userId,
+          companyID,
+          date: queryDateIST, // Returning the date in IST
+          status: 'Absent',
+          manualCheckInTime: null,
+          manualCheckOutTime: null,
+          workingHours: null,
+        },
+      });
     }
 
     // Convert the dates to IST for the response
-    attendanceRecords.forEach(record => {
-      record.manualCheckInTime = toIST(record.manualCheckInTime);
-      record.manualCheckOutTime = toIST(record.manualCheckOutTime);
-      record.date = toIST(record.date);
-    });
+    attendanceRecord.manualCheckInTime = toIST(attendanceRecord.manualCheckInTime);
+    attendanceRecord.manualCheckOutTime = toIST(attendanceRecord.manualCheckOutTime);
+    attendanceRecord.date = toIST(attendanceRecord.date);
 
-    res.status(200).json({ attendanceRecords });
+    // Return the existing attendance record
+    res.status(200).json({ attendanceRecord });
   } catch (error) {
     console.error('Error fetching attendance details:', error);
     res.status(500).json({ error: 'Server error fetching attendance details' });
