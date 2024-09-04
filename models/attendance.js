@@ -40,6 +40,11 @@ const attendanceSchema = new mongoose.Schema({
       enum: ['Checked In', 'Checked Out'],
       default: 'Checked Out'
     },
+    marked: {
+      type: String,
+      enum: ['Present', 'Absent'],
+      default: 'Absent'
+    },
     workingHours: {
       type: Number, // Changed to Number if storing hours
       required: false

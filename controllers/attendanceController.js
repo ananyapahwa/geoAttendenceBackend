@@ -57,7 +57,8 @@ const updateLocation = async (req, res) => {
                   checkInTime: checkInTimeUTC,
                   location: { type: 'Point', coordinates: [longitude, latitude] },
                   isInsideHQ: true,
-                  status: 'Checked In'
+                  status: 'Checked In',
+                  marked: 'Present'
               });
 
               console.log('Checked In at:', checkInTimeIST);
@@ -123,24 +124,39 @@ const getAttendanceDetails = async (req, res) => {
       date: { $gte: startOfDayDate, $lte: endOfDayDate }
     });
 
-    // If no records are found, return an empty array
-    const transformedRecords = attendanceRecord ? attendanceRecord.records.map(record => ({
-      checkInTime: record.checkInTime ? convertToIST(record.checkInTime).toISOString() : null,
-      checkOutTime: record.checkOutTime ? convertToIST(record.checkOutTime).toISOString() : null,
-      workingHours: record.workingHours || 0,
-      status: record.status,
-      location: record.location,
-    })) : [];
+    // Check if the user has checked in at all during the day
+    let markedStatus = 'Absent';
+    const transformedRecords = attendanceRecord ? attendanceRecord.records.map(record => {
+      if (record.checkInTime) {
+        markedStatus = 'Present';
+      }
+      return {
+        checkInTime: record.checkInTime ? convertToIST(record.checkInTime).toISOString() : null,
+        checkOutTime: record.checkOutTime ? convertToIST(record.checkOutTime).toISOString() : null,
+        workingHours: record.workingHours || 0,
+        status: record.status,
+        location: record.location,
+      };
+    }) : [];
 
-    // Send response
-    res.status(200).json({
-      records: transformedRecords
-    });
+    // If no records are found, return marked as 'Absent'
+    if (!transformedRecords.length) {
+      res.status(200).json({
+        marked: 'Absent',
+        records: transformedRecords
+      });
+    } else {
+      res.status(200).json({
+        marked: markedStatus,
+        records: transformedRecords
+      });
+    }
   } catch (error) {
     console.error('Error fetching attendance details:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 
 // Function to check if the user is inside the HQ geofence
 const checkIfInsideGeofence = (latitude, longitude, hqlatitude, hqlongitude) => {
