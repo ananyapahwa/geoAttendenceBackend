@@ -1,12 +1,18 @@
 const Location = require('../models/location');
+const User = require('../models/user');
+const mongoose=require('mongoose');
 
 // Create or update location
 const upsertLocation = async (req, res) => {
-  const { name, latitude, longitude } = req.body;
+  const { companyID, latitude, longitude } = req.body;
+
+  if (!mongoose.isValidObjectId(companyID)) {
+    return res.status(400).json({ message: 'Invalid Company ID' });
+}
 
   try {
     const location = await Location.findOneAndUpdate(
-      { name },
+      { companyID },
       {
         coordinates: {
           type: 'Point',
@@ -25,10 +31,13 @@ const upsertLocation = async (req, res) => {
 
 // Retrieve location by name
 const getLocation = async (req, res) => {
-  const { name } = req.params;
+  const { companyID } = req.params;
 
+  if (!mongoose.isValidObjectId(companyID)) {
+    return res.status(400).json({ message: 'Invalid Company ID' });
+}
   try {
-    const location = await Location.findOne({ name });
+    const location = await Location.findOne({ companyID });
     if (!location) {
       return res.status(404).json({ message: 'Location not found' });
     }

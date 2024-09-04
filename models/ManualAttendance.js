@@ -6,7 +6,7 @@ const ManualAttendanceSchema = new mongoose.Schema({
       ref: 'User',
       required: true
     },
-    companyId: {
+    companyID: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
     },
@@ -43,4 +43,4 @@ const ManualAttendanceSchema = new mongoose.Schema({
     timestamps: true
   });
   
-  module.exports = mongoose.model('ManualAttendence', ManualAttendanceSchema);
+  module.exports = mongoose.model('ManualAttendance', ManualAttendanceSchema);

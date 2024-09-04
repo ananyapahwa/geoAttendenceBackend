@@ -6,6 +6,10 @@ const LocationSchema = new mongoose.Schema({
     type: { type: String, default: 'Point' },
     coordinates: [Number],
   },
+  companyID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+  }
 });
 
 LocationSchema.index({ coordinates: '2dsphere' });
