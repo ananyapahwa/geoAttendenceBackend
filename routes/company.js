@@ -8,4 +8,6 @@ router.get('/profile', authCompanyMiddleware, companyController.getCompanyProfil
 
 router.get('/companyinfo/:companyID', companyController.getCompanyInfoById );
 
+router.get('/employeedetails/:companyID', companyController.employeeInfo );
+
 module.exports = router;

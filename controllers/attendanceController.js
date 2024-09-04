@@ -142,7 +142,6 @@ const getAttendanceDetails = async (req, res) => {
   }
 };
 
-
 // Function to check if the user is inside the HQ geofence
 const checkIfInsideGeofence = (latitude, longitude, hqlatitude, hqlongitude) => {
     const distanceThreshold = 200.0; // meters

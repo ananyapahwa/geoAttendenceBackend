@@ -30,11 +30,30 @@ const getCompanyInfoById = async (req, res) => {
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
     }
-
     res.json(company);
   } catch (error) {
     console.error('Error fetching company info:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
-module.exports = { getCompanyProfile, getCompanyInfoById };
+
+const employeeInfo = async (req,res) => {
+  try {
+    const { companyID } = req.params;
+
+    if(!mongoose.isValidObjectId(companyID)) {
+      return res.status(400).json({ message: 'Invalid Company ID' });
+    }
+      const user = await User.find({ companyID: companyID }).select('-password');
+
+      if(!user) {
+        return res.status(404).json({ message: 'No employees found' });
+      }
+      res.json(user);
+  } catch (error) {
+    console.error('Error fetching company info:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { getCompanyProfile, getCompanyInfoById, employeeInfo };
