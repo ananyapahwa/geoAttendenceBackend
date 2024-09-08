@@ -32,6 +32,12 @@ const userSchema=new mongoose.Schema({
         type: String,
         required:true,
         unique:true
+      },
+      //added leave balance -> ananya
+      leaveBalance:{
+        type:Number,
+        required:false,
+        default:10
       }
 },{
     timestamps:true
